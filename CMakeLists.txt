@@ -9,7 +9,7 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
 qt_standard_project_setup()
 
-add_executable(MarkdownEditor
+qt_add_executable(MarkdownEditor
     src/main.cpp
     src/MainWindow.cpp
     src/MarkdownEditor.cpp
@@ -29,7 +29,3 @@ add_executable(MarkdownEditor
 
 target_include_directories(MarkdownEditor PRIVATE src)
 target_link_libraries(MarkdownEditor PRIVATE Qt6::Widgets)
-
-if(ANDROID)
-    qt_android_add_apk_target(MarkdownEditor)
-endif()
