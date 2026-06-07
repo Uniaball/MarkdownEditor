@@ -1,0 +1,41 @@
+#pragma once
+#include <QMainWindow>
+
+class MarkdownEditor;
+class PreviewWidget;
+class FormatToolBar;
+
+class MainWindow : public QMainWindow
+{
+    Q_OBJECT
+public:
+    explicit MainWindow(QWidget *parent = nullptr);
+    ~MainWindow() override;
+
+private slots:
+    void newFile();
+    void openFile();
+    bool saveFile();
+    bool saveAsFile();
+    void updatePreview();
+    void syncFontSize(int size);
+    void syncScrollFromEditor(int value);
+    void syncScrollFromPreview(int value);
+
+private:
+    void setupUi();
+    void setupMenuBar();
+    void setupConnections();
+    void setupScrollSync();
+
+    void loadFile(const QString &path);
+    bool saveFileAs(const QString &path);
+
+    MarkdownEditor *m_editor = nullptr;
+    PreviewWidget  *m_preview = nullptr;
+    FormatToolBar  *m_formatBar = nullptr;
+
+    QString m_currentFilePath;
+    bool m_modified = false;
+    int m_currentFontSize = 14;
+};

@@ -1,0 +1,17 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icons/bold.svg</file>
+        <file>icons/italic.svg</file>
+        <file>icons/code.svg</file>
+        <file>icons/code_blocks.svg</file>
+        <file>icons/format_h1.svg</file>
+        <file>icons/format_h2.svg</file>
+        <file>icons/format_h3.svg</file>
+        <file>icons/list.svg</file>
+        <file>icons/numbered_list.svg</file>
+        <file>icons/unfold_more.svg</file>
+        <file>icons/table.svg</file>
+        <file>icons/link.svg</file>
+        <file>icons/image.svg</file>
+    </qresource>
+</RCC>
