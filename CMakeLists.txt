@@ -35,6 +35,3 @@ add_executable(MarkdownEditor
 
 target_include_directories(MarkdownEditor PRIVATE src)
 target_link_libraries(MarkdownEditor PRIVATE Qt6::Widgets)
-if(ANDROID)
-    target_link_libraries(MarkdownEditor PRIVATE Qt6::AndroidExtras)
-endif()
