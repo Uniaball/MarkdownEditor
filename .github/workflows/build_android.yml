@@ -30,7 +30,7 @@ jobs:
 
       - name: Remove all other platforms to prevent auto-selection
         run: |
-          find $ANDROID_SDK_ROOT/platforms -maxdepth 1 -type d -name 'android-*' ! -name '$ANDROID_PLATFORM' -exec rm -rf {} \;
+          find $ANDROID_SDK_ROOT/platforms -maxdepth 1 -type d -name 'android-*' ! -name "${ANDROID_PLATFORM}" -exec rm -rf {} \;
           find $ANDROID_SDK_ROOT/platforms -maxdepth 1 -type d -name '*ext*' -exec rm -rf {} \;
           echo "Remaining platforms:"
           ls $ANDROID_SDK_ROOT/platforms
