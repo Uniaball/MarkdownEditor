@@ -12,7 +12,7 @@ jobs:
     env:
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       ANDROID_PLATFORM: android-36
-      ANDROID_NDK_VERSION: 28.0.13004108
+      ANDROID_NDK_VERSION: 27.0.12077973
 
     steps:
       - name: Checkout code
