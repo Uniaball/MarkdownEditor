@@ -5,13 +5,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTORCC ON)
 
-if(ANDROID)
-    find_package(Qt6 REQUIRED COMPONENTS Widgets Core)
-    qt_android_generate_deployment_settings()
-    qt_android_add_apk_target(MarkdownEditor)
-else()
-    find_package(Qt6 REQUIRED COMPONENTS Widgets)
-endif()
+find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
 qt_standard_project_setup()
 
@@ -35,3 +29,7 @@ add_executable(MarkdownEditor
 
 target_include_directories(MarkdownEditor PRIVATE src)
 target_link_libraries(MarkdownEditor PRIVATE Qt6::Widgets)
+
+if(ANDROID)
+    qt_android_add_apk_target(MarkdownEditor)
+endif()
