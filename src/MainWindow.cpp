@@ -10,8 +10,7 @@
 #include <QMessageBox>
 #include <QTextStream>
 #include <QScrollBar>
-#include <QScreen>
-#include <QGuiApplication>
+#include <QScroller>
 #include <format>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -28,33 +27,31 @@ MainWindow::~MainWindow() = default;
 
 void MainWindow::setupUi()
 {
-    auto *splitter = new QSplitter(this);
+    auto *splitter = new QSplitter(Qt::Horizontal, this);
     m_editor = new MarkdownEditor;
     m_preview = new PreviewWidget;
+
+    m_editor->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    m_preview->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    QScroller::grabGesture(m_editor->viewport(), QScroller::TouchGesture);
+    QScroller::grabGesture(m_preview->viewport(), QScroller::TouchGesture);
+
     splitter->addWidget(m_editor);
     splitter->addWidget(m_preview);
-
-    // 安卓竖屏使用上下分割，桌面和横屏使用左右分割
-#ifdef Q_OS_ANDROID
-    QScreen *screen = QGuiApplication::primaryScreen();
-    if (screen && screen->availableSize().width() < screen->availableSize().height()) {
-        splitter->setOrientation(Qt::Vertical);
-    } else {
-        splitter->setOrientation(Qt::Horizontal);
-    }
-#else
-    splitter->setOrientation(Qt::Horizontal);
-#endif
-
     setCentralWidget(splitter);
 
     m_formatBar = new FormatToolBar(m_editor);
     addToolBar(m_formatBar);
+    m_formatBar->setMovable(false);
+    m_formatBar->setFloatable(false);
+    m_formatBar->toggleViewAction()->setEnabled(false);
 }
 
 void MainWindow::setupMenuBar()
 {
-    QMenu *fileMenu = menuBar()->addMenu("文件(&F)");
+    QMenuBar *mb = menuBar();
+    mb->setNativeMenuBar(false);
+    QMenu *fileMenu = mb->addMenu("文件(&F)");
     fileMenu->addAction("新建(&N)", QKeySequence::New, this, &MainWindow::newFile);
     fileMenu->addAction("打开(&O)...", QKeySequence::Open, this, &MainWindow::openFile);
     fileMenu->addAction("保存(&S)", QKeySequence::Save, this, &MainWindow::saveFile);
@@ -111,7 +108,7 @@ void MainWindow::syncScrollFromEditor(int value)
 
     double editorRange = editorBar->maximum() - editorBar->minimum();
     double previewRange = previewBar->maximum() - previewBar->minimum();
-    if (editorRange <= 0) return;
+    if (editorRange <= 0 || previewRange <= 0) return;
 
     double ratio = (value - editorBar->minimum()) / editorRange;
     int previewValue = previewBar->minimum() + qRound(ratio * previewRange);
@@ -119,6 +116,7 @@ void MainWindow::syncScrollFromEditor(int value)
     previewBar->blockSignals(true);
     previewBar->setValue(previewValue);
     previewBar->blockSignals(false);
+    m_preview->viewport()->update();
 }
 
 void MainWindow::syncScrollFromPreview(int value)
@@ -128,7 +126,7 @@ void MainWindow::syncScrollFromPreview(int value)
 
     double previewRange = previewBar->maximum() - previewBar->minimum();
     double editorRange = editorBar->maximum() - editorBar->minimum();
-    if (previewRange <= 0) return;
+    if (previewRange <= 0 || editorRange <= 0) return;
 
     double ratio = (value - previewBar->minimum()) / previewRange;
     int editorValue = editorBar->minimum() + qRound(ratio * editorRange);
@@ -136,6 +134,7 @@ void MainWindow::syncScrollFromPreview(int value)
     editorBar->blockSignals(true);
     editorBar->setValue(editorValue);
     editorBar->blockSignals(false);
+    m_editor->viewport()->update();
 }
 
 void MainWindow::newFile()
