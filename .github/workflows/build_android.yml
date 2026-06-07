@@ -26,7 +26,6 @@ jobs:
           version: '6.5.3'
           target: 'android'
           arch: 'android_arm64_v8a'
-          modules: 'qtbase'
           cache: true
 
       - name: Configure project
