@@ -33,6 +33,7 @@ jobs:
           qt-cmake -GNinja -DCMAKE_BUILD_TYPE=Release \
             -DANDROID_SDK_ROOT=$ANDROID_SDK_ROOT \
             -DANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME \
+            -DANDROID_PLATFORM=android-31 \
             -B build .
 
       - name: Build APK
