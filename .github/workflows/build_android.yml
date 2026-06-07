@@ -31,9 +31,7 @@ jobs:
 
       - name: Remove all other platforms to prevent auto-selection
         run: |
-          # 删除除 android-31 之外的所有标准平台
           find $ANDROID_SDK_ROOT/platforms -maxdepth 1 -type d -name 'android-*' ! -name 'android-31' -exec rm -rf {} \;
-          # 删除所有 ext 平台（它们通常损坏）
           find $ANDROID_SDK_ROOT/platforms -maxdepth 1 -type d -name '*ext*' -exec rm -rf {} \;
           echo "Remaining platforms:"
           ls $ANDROID_SDK_ROOT/platforms
@@ -65,4 +63,4 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: markdown-editor-apk
-          path: build/android-build/build/outputs/apk/debug/*.apk
+          path: build/android-build/build/outputs/apk/release/*.apk
