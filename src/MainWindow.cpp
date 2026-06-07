@@ -11,6 +11,8 @@
 #include <QTextStream>
 #include <QScrollBar>
 #include <QScroller>
+#include <QScreen>
+#include <QGuiApplication>
 #include <format>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -27,14 +29,36 @@ MainWindow::~MainWindow() = default;
 
 void MainWindow::setupUi()
 {
-    auto *splitter = new QSplitter(Qt::Horizontal, this);
+    Qt::Orientation orientation = Qt::Horizontal;
+#ifdef Q_OS_ANDROID
+    QScreen *screen = QGuiApplication::primaryScreen();
+    if (screen) {
+        QSize screenSize = screen->availableSize();
+        if (screenSize.height() > screenSize.width()) {
+            orientation = Qt::Vertical;
+        }
+    }
+#endif
+
+    auto *splitter = new QSplitter(orientation, this);
     m_editor = new MarkdownEditor;
     m_preview = new PreviewWidget;
 
     m_editor->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     m_preview->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    QScroller::grabGesture(m_editor->viewport(), QScroller::TouchGesture);
-    QScroller::grabGesture(m_preview->viewport(), QScroller::TouchGesture);
+
+    auto setupScroller = [](QWidget *widget) {
+        QScroller::grabGesture(widget, QScroller::TouchGesture);
+        QScroller *scroller = QScroller::scroller(widget);
+        QScrollerProperties props = scroller->scrollerProperties();
+        props.setScrollMetric(QScrollerProperties::DragVelocitySmoothingFactor, 0.2);
+        props.setScrollMetric(QScrollerProperties::MaximumVelocity, 0.1);
+        props.setScrollMetric(QScrollerProperties::AcceleratingFlickMaximumTime, 0.1);
+        props.setScrollMetric(QScrollerProperties::OvershootDragResistanceFactor, 0.6);
+        scroller->setScrollerProperties(props);
+    };
+    setupScroller(m_editor->viewport());
+    setupScroller(m_preview->viewport());
 
     splitter->addWidget(m_editor);
     splitter->addWidget(m_preview);
@@ -42,6 +66,7 @@ void MainWindow::setupUi()
 
     m_formatBar = new FormatToolBar(m_editor);
     addToolBar(m_formatBar);
+
     m_formatBar->setMovable(false);
     m_formatBar->setFloatable(false);
     m_formatBar->toggleViewAction()->setEnabled(false);
