@@ -29,7 +29,7 @@ jobs:
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-31" "ndk;$ANDROID_NDK_VERSION"
 
       - name: Remove broken android-36-ext19 platform
-        run: rm -rf $ANDROID_SDK_ROOT/platforms/android-36-ext*
+        run: rm -rf $ANDROID_SDK_ROOT/platforms/*ext*
 
       - name: Install Qt for Android
         uses: jurplel/install-qt-action@v4
