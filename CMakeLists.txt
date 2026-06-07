@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTORCC ON)
 
 if(ANDROID)
-    find_package(Qt6 REQUIRED COMPONENTS Widgets Core AndroidExtras)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets Core)
     qt_android_generate_deployment_settings()
     qt_android_add_apk_target(MarkdownEditor)
 else()
