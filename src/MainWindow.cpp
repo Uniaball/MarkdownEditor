@@ -29,16 +29,14 @@ MainWindow::~MainWindow() = default;
 
 void MainWindow::setupUi()
 {
-    Qt::Orientation orientation = Qt::Horizontal;
-#ifdef Q_OS_ANDROID
+    Qt::Orientation orientation = Qt::Vertical;
     QScreen *screen = QGuiApplication::primaryScreen();
     if (screen) {
         QSize screenSize = screen->availableSize();
-        if (screenSize.height() > screenSize.width()) {
-            orientation = Qt::Vertical;
+        if (screenSize.width() > screenSize.height()) {
+            orientation = Qt::Horizontal;
         }
     }
-#endif
 
     auto *splitter = new QSplitter(orientation, this);
     m_editor = new MarkdownEditor;
@@ -47,7 +45,19 @@ void MainWindow::setupUi()
     m_editor->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     m_preview->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
 
-    auto setupScroller = [](QWidget *widget) {
+    auto setupEditorScroller = [](QWidget *widget) {
+        QScroller::grabGesture(widget, QScroller::TouchGesture);
+        QScroller *scroller = QScroller::scroller(widget);
+        QScrollerProperties props = scroller->scrollerProperties();
+        props.setScrollMetric(QScrollerProperties::DragVelocitySmoothingFactor, 0.06);
+        props.setScrollMetric(QScrollerProperties::MaximumVelocity, 0.04);
+        props.setScrollMetric(QScrollerProperties::AcceleratingFlickMaximumTime, 0.08);
+        props.setScrollMetric(QScrollerProperties::OvershootDragResistanceFactor, 0.5);
+        scroller->setScrollerProperties(props);
+    };
+    setupEditorScroller(m_editor->viewport());
+
+    auto setupPreviewScroller = [](QWidget *widget) {
         QScroller::grabGesture(widget, QScroller::TouchGesture);
         QScroller *scroller = QScroller::scroller(widget);
         QScrollerProperties props = scroller->scrollerProperties();
@@ -57,8 +67,7 @@ void MainWindow::setupUi()
         props.setScrollMetric(QScrollerProperties::OvershootDragResistanceFactor, 0.6);
         scroller->setScrollerProperties(props);
     };
-    setupScroller(m_editor->viewport());
-    setupScroller(m_preview->viewport());
+    setupPreviewScroller(m_preview->viewport());
 
     splitter->addWidget(m_editor);
     splitter->addWidget(m_preview);
@@ -66,7 +75,6 @@ void MainWindow::setupUi()
 
     m_formatBar = new FormatToolBar(m_editor);
     addToolBar(m_formatBar);
-
     m_formatBar->setMovable(false);
     m_formatBar->setFloatable(false);
     m_formatBar->toggleViewAction()->setEnabled(false);

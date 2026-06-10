@@ -20,7 +20,7 @@ signals:
     void linkTriggered();
     void imageTriggered();
     void detailsTriggered();
-    void tableTriggered();      // 新增
+    void tableTriggered();
 
 private slots:
     void onEditorUnorderedChanged(bool active);
