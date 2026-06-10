@@ -34,8 +34,12 @@ private:
     MarkdownEditor *m_editor = nullptr;
     PreviewWidget  *m_preview = nullptr;
     FormatToolBar  *m_formatBar = nullptr;
+    QSplitter *m_splitter = nullptr;
 
     QString m_currentFilePath;
     bool m_modified = false;
     int m_currentFontSize = 14;
+    
+protected:
+    void resizeEvent(QResizeEvent *event) override;
 };

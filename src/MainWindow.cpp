@@ -13,6 +13,7 @@
 #include <QScroller>
 #include <QScreen>
 #include <QGuiApplication>
+#include <QResizeEvent>
 #include <format>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -29,33 +30,19 @@ MainWindow::~MainWindow() = default;
 
 void MainWindow::setupUi()
 {
-    Qt::Orientation orientation = Qt::Vertical;
+    Qt::Orientation initOrient = Qt::Vertical;
     QScreen *screen = QGuiApplication::primaryScreen();
     if (screen) {
-        QSize screenSize = screen->availableSize();
-        if (screenSize.width() > screenSize.height()) {
-            orientation = Qt::Horizontal;
-        }
+        QSize sz = screen->availableSize();
+        if (sz.width() > sz.height()) initOrient = Qt::Horizontal;
     }
 
-    auto *splitter = new QSplitter(orientation, this);
+    m_splitter = new QSplitter(initOrient, this);
     m_editor = new MarkdownEditor;
     m_preview = new PreviewWidget;
 
     m_editor->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     m_preview->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-
-    auto setupEditorScroller = [](QWidget *widget) {
-        QScroller::grabGesture(widget, QScroller::TouchGesture);
-        QScroller *scroller = QScroller::scroller(widget);
-        QScrollerProperties props = scroller->scrollerProperties();
-        props.setScrollMetric(QScrollerProperties::DragVelocitySmoothingFactor, 0.06);
-        props.setScrollMetric(QScrollerProperties::MaximumVelocity, 0.04);
-        props.setScrollMetric(QScrollerProperties::AcceleratingFlickMaximumTime, 0.08);
-        props.setScrollMetric(QScrollerProperties::OvershootDragResistanceFactor, 0.5);
-        scroller->setScrollerProperties(props);
-    };
-    setupEditorScroller(m_editor->viewport());
 
     auto setupPreviewScroller = [](QWidget *widget) {
         QScroller::grabGesture(widget, QScroller::TouchGesture);
@@ -69,9 +56,9 @@ void MainWindow::setupUi()
     };
     setupPreviewScroller(m_preview->viewport());
 
-    splitter->addWidget(m_editor);
-    splitter->addWidget(m_preview);
-    setCentralWidget(splitter);
+    m_splitter->addWidget(m_editor);
+    m_splitter->addWidget(m_preview);
+    setCentralWidget(m_splitter);
 
     m_formatBar = new FormatToolBar(m_editor);
     addToolBar(m_formatBar);
@@ -168,6 +155,18 @@ void MainWindow::syncScrollFromPreview(int value)
     editorBar->setValue(editorValue);
     editorBar->blockSignals(false);
     m_editor->viewport()->update();
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    QMainWindow::resizeEvent(event);
+    if (!m_splitter) return;
+
+    QSize newSize = event->size();
+    Qt::Orientation newOrient = (newSize.width() > newSize.height()) ? Qt::Horizontal : Qt::Vertical;
+    if (m_splitter->orientation() != newOrient) {
+        m_splitter->setOrientation(newOrient);
+    }
 }
 
 void MainWindow::newFile()
