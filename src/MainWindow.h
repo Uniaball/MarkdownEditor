@@ -1,9 +1,12 @@
 #pragma once
 #include <QMainWindow>
+#include <QSplitter>
+#include <QSet>
 
 class MarkdownEditor;
 class PreviewWidget;
 class FormatToolBar;
+class QResizeEvent;
 
 class MainWindow : public QMainWindow
 {
@@ -11,6 +14,9 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
+
+protected:
+    void resizeEvent(QResizeEvent *event) override;
 
 private slots:
     void newFile();
@@ -34,12 +40,9 @@ private:
     MarkdownEditor *m_editor = nullptr;
     PreviewWidget  *m_preview = nullptr;
     FormatToolBar  *m_formatBar = nullptr;
-    QSplitter *m_splitter = nullptr;
+    QSplitter      *m_splitter = nullptr;
 
     QString m_currentFilePath;
     bool m_modified = false;
     int m_currentFontSize = 14;
-    
-protected:
-    void resizeEvent(QResizeEvent *event) override;
 };
