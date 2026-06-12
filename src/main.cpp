@@ -8,7 +8,6 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
-    // 安卓平台默认字体稍大，以便在小屏上阅读
 #ifdef Q_OS_ANDROID
     QFont defaultFont = app.font();
     defaultFont.setPointSize(10);
