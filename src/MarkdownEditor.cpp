@@ -5,6 +5,7 @@
 #include <QKeyEvent>
 #include <QWheelEvent>
 #include <QApplication>
+#include <QTouchEvent>
 
 MarkdownEditor::MarkdownEditor(QWidget *parent)
     : QPlainTextEdit(parent)
@@ -97,6 +98,17 @@ void MarkdownEditor::wheelEvent(QWheelEvent *event)
         }
     }
     QPlainTextEdit::wheelEvent(event);
+}
+
+bool MarkdownEditor::viewportEvent(QEvent *event)
+{
+    if (event->type() == QEvent::TouchBegin ||
+        event->type() == QEvent::TouchUpdate ||
+        event->type() == QEvent::TouchEnd)
+    {
+        return true;
+    }
+    return QPlainTextEdit::viewportEvent(event);
 }
 
 void MarkdownEditor::wrapSelection(const QString &prefix, const QString &suffix, const QString &placeholder)

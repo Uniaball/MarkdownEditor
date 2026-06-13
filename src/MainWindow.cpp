@@ -43,17 +43,29 @@ void MainWindow::setupUi()
     m_editor->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     m_preview->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
 
+    QWidget *editorViewport = m_editor->viewport();
+    if (!QScroller::hasScroller(editorViewport)) {
+        QScroller::grabGesture(editorViewport, QScroller::TouchGesture);
+    }
+    QScroller *editorScroller = QScroller::scroller(editorViewport);
+    QScrollerProperties editorProps = editorScroller->scrollerProperties();
+    editorProps.setScrollMetric(QScrollerProperties::DragVelocitySmoothingFactor, 0.7);
+    editorProps.setScrollMetric(QScrollerProperties::MaximumVelocity, 0.08);
+    editorProps.setScrollMetric(QScrollerProperties::OvershootDragResistanceFactor, 0.5);
+    editorProps.setScrollMetric(QScrollerProperties::AcceleratingFlickMaximumTime, 0.1);
+    editorScroller->setScrollerProperties(editorProps);
+
     QWidget *previewViewport = m_preview->viewport();
     if (!QScroller::hasScroller(previewViewport)) {
         QScroller::grabGesture(previewViewport, QScroller::TouchGesture);
     }
     QScroller *previewScroller = QScroller::scroller(previewViewport);
-    QScrollerProperties props = previewScroller->scrollerProperties();
-    props.setScrollMetric(QScrollerProperties::DragVelocitySmoothingFactor, 0.2);
-    props.setScrollMetric(QScrollerProperties::MaximumVelocity, 0.1);
-    props.setScrollMetric(QScrollerProperties::AcceleratingFlickMaximumTime, 0.1);
-    props.setScrollMetric(QScrollerProperties::OvershootDragResistanceFactor, 0.6);
-    previewScroller->setScrollerProperties(props);
+    QScrollerProperties previewProps = previewScroller->scrollerProperties();
+    previewProps.setScrollMetric(QScrollerProperties::DragVelocitySmoothingFactor, 0.2);
+    previewProps.setScrollMetric(QScrollerProperties::MaximumVelocity, 0.1);
+    previewProps.setScrollMetric(QScrollerProperties::OvershootDragResistanceFactor, 0.6);
+    previewProps.setScrollMetric(QScrollerProperties::AcceleratingFlickMaximumTime, 0.1);
+    previewScroller->setScrollerProperties(previewProps);
 
     m_splitter->addWidget(m_editor);
     m_splitter->addWidget(m_preview);

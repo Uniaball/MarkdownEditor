@@ -24,7 +24,7 @@ public slots:
     void insertLink();
     void insertImage();
     void detailsBlock();
-    void insertTable();        // 新增
+    void insertTable();
 
 signals:
     void contentChanged();
@@ -35,6 +35,7 @@ signals:
 protected:
     void keyPressEvent(QKeyEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
+    bool viewportEvent(QEvent *event) override;
 
 private:
     void wrapSelection(const QString &prefix, const QString &suffix, const QString &placeholder = "");
