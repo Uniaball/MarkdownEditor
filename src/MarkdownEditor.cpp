@@ -16,8 +16,9 @@ MarkdownEditor::MarkdownEditor(QWidget *parent)
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     setFocusPolicy(Qt::ClickFocus);
     setAttribute(Qt::WA_InputMethodEnabled, true);
-    viewport()->installEventFilter(this);
+
     viewport()->setAttribute(Qt::WA_AcceptTouchEvents, true);
+    viewport()->installEventFilter(this);
 }
 
 bool MarkdownEditor::eventFilter(QObject *watched, QEvent *event)
@@ -26,42 +27,80 @@ bool MarkdownEditor::eventFilter(QObject *watched, QEvent *event)
         return QPlainTextEdit::eventFilter(watched, event);
 
     switch (event->type()) {
+
     case QEvent::TouchBegin: {
         auto *te = static_cast<QTouchEvent *>(event);
         if (te->points().size() == 1) {
-            m_touchDragging = true;
-            m_touchLastPos = te->points().first().position();
-            QPoint pos = m_touchLastPos.toPoint();
-            QTextCursor cur = cursorForPosition(pos);
+            m_touchStartPos  = te->points().first().position();
+            m_touchLastPos   = m_touchStartPos;
+            m_touchActive    = true;
+            m_touchDidDrag   = false;
+        } else {
+            m_touchActive = false;
+        }
+        return false;
+    }
+
+    case QEvent::TouchUpdate: {
+        if (!m_touchActive)
+            return false;
+
+        auto *te = static_cast<QTouchEvent *>(event);
+        if (te->points().size() != 1) {
+            m_touchActive = false;
+            return false;
+        }
+
+        QPointF now = te->points().first().position();
+
+        if (!m_touchDidDrag) {
+            int th = QApplication::startDragDistance() * 2;
+            qreal dx = qAbs(now.x() - m_touchStartPos.x());
+            qreal dy = qAbs(now.y() - m_touchStartPos.y());
+            if (dx < th && dy < th) {
+                return false;
+            }
+
+            m_touchDidDrag = true;
+            m_touchLastPos = now;
+
+            QTextCursor cur = textCursor();
+            if (cur.hasSelection())
+                cur.clearSelection();
             setTextCursor(cur);
+
+            QScrollBar *v = verticalScrollBar();
+            v->setValue(v->value() + qRound(m_touchLastPos.y() - now.y()));
+            emit scrollPixelChanged(v->value());
             return true;
         }
-        break;
-    }
-    case QEvent::TouchUpdate: {
-        auto *te = static_cast<QTouchEvent *>(event);
-        if (!m_touchDragging || te->points().size() != 1)
-            break;
-        QPointF now = te->points().first().position();
+
         qreal dy = m_touchLastPos.y() - now.y();
         m_touchLastPos = now;
+
         QScrollBar *v = verticalScrollBar();
         if (v && v->maximum() > v->minimum()) {
-            int newVal = v->value() + int(qRound(dy));
-            newVal = qBound(v->minimum(), newVal, v->maximum());
-            v->setValue(newVal);
-            emit scrollPixelChanged(newVal);
+            int val = qBound(v->minimum(),
+                             v->value() + qRound(dy),
+                             v->maximum());
+            v->setValue(val);
+            emit scrollPixelChanged(val);
         }
         return true;
     }
+
     case QEvent::TouchEnd:
     case QEvent::TouchCancel: {
-        m_touchDragging = false;
-        return true;
+        bool ate = m_touchDidDrag;
+        m_touchActive  = false;
+        m_touchDidDrag = false;
+        return ate;
     }
+
     default:
         break;
     }
+
     return QPlainTextEdit::eventFilter(watched, event);
 }
 
@@ -133,14 +172,13 @@ void MarkdownEditor::wheelEvent(QWheelEvent *event)
     if (event->modifiers() & Qt::ControlModifier) {
         const int delta = event->angleDelta().y();
         if (delta != 0) {
-            QFont currentFont = font();
-            int currentSize = currentFont.pointSize();
-            if (currentSize == -1) currentSize = QApplication::font().pointSize();
-            int newSize = currentSize + (delta > 0 ? 1 : -1);
-            newSize = qBound(6, newSize, 48);
-            currentFont.setPointSize(newSize);
-            setFont(currentFont);
-            emit fontSizeChanged(newSize);
+            QFont f = font();
+            int s = f.pointSize();
+            if (s == -1) s = QApplication::font().pointSize();
+            s = qBound(6, s + (delta > 0 ? 1 : -1), 48);
+            f.setPointSize(s);
+            setFont(f);
+            emit fontSizeChanged(s);
             event->accept();
             return;
         }
@@ -151,20 +189,19 @@ void MarkdownEditor::wheelEvent(QWheelEvent *event)
 void MarkdownEditor::wrapSelection(const QString &prefix, const QString &suffix, const QString &placeholder)
 {
     QTextCursor cursor = textCursor();
-    QString selected = cursor.selectedText();
-
-    if (selected.isEmpty()) {
-        QString insertText = prefix + placeholder + suffix;
-        cursor.insertText(insertText);
+    QString sel = cursor.selectedText();
+    if (sel.isEmpty()) {
+        QString t = prefix + placeholder + suffix;
+        cursor.insertText(t);
         if (!placeholder.isEmpty()) {
-            cursor.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, suffix.length() + placeholder.length());
+            cursor.movePosition(QTextCursor::Left,  QTextCursor::MoveAnchor, suffix.length() + placeholder.length());
             cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, placeholder.length());
             setTextCursor(cursor);
         }
     } else {
-        cursor.insertText(prefix + selected + suffix);
-        cursor.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, suffix.length());
-        cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, selected.length() + prefix.length());
+        cursor.insertText(prefix + sel + suffix);
+        cursor.movePosition(QTextCursor::Left,  QTextCursor::MoveAnchor, suffix.length());
+        cursor.movePosition(QTextCursor::Left,  QTextCursor::KeepAnchor, sel.length() + prefix.length());
         setTextCursor(cursor);
     }
 }
@@ -176,16 +213,16 @@ void MarkdownEditor::prependToLine(const QString &prefix)
     cursor.insertText(prefix);
 }
 
-void MarkdownEditor::boldText() { wrapSelection("**", "**", "粗体文本"); }
-void MarkdownEditor::italicText() { wrapSelection("*", "*", "斜体文本"); }
-void MarkdownEditor::inlineCode() { wrapSelection("`", "`", "代码"); }
+void MarkdownEditor::boldText()      { wrapSelection("**","**","粗体文本"); }
+void MarkdownEditor::italicText()     { wrapSelection("*","*","斜体文本"); }
+void MarkdownEditor::inlineCode()     { wrapSelection("`","`","代码"); }
 
 void MarkdownEditor::codeBlock()
 {
     QTextCursor cursor = textCursor();
-    if (!cursor.selectedText().isEmpty()) {
+    if (!cursor.selectedText().isEmpty())
         cursor.insertText(QString("```\n%1\n```").arg(cursor.selectedText()));
-    } else {
+    else {
         cursor.insertText("```\n\n```");
         cursor.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, 4);
         cursor.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, 1);
@@ -195,13 +232,13 @@ void MarkdownEditor::codeBlock()
 
 void MarkdownEditor::header(int level)
 {
-    QString prefix = QString("#").repeated(level) + " ";
-    QTextCursor cursor = textCursor();
-    if (cursor.selectedText().isEmpty()) {
-        cursor.movePosition(QTextCursor::StartOfLine);
-        cursor.insertText(prefix);
+    QString p = QString("#").repeated(level) + " ";
+    QTextCursor c = textCursor();
+    if (c.selectedText().isEmpty()) {
+        c.movePosition(QTextCursor::StartOfLine);
+        c.insertText(p);
     } else {
-        cursor.insertText(prefix + cursor.selectedText());
+        c.insertText(p + c.selectedText());
     }
 }
 
@@ -211,13 +248,12 @@ void MarkdownEditor::toggleUnorderedList()
     if (m_unorderedActive) {
         m_orderedActive = false;
         emit orderedListModeChanged(false);
-        QTextCursor cursor = textCursor();
-        cursor.movePosition(QTextCursor::StartOfLine);
-        QString line = cursor.block().text();
-        if (!line.trimmed().startsWith("- ") && !line.trimmed().startsWith("* ")) {
-            cursor.insertText("- ");
-            setTextCursor(cursor);
-        }
+        QTextCursor c = textCursor();
+        c.movePosition(QTextCursor::StartOfLine);
+        QString ln = c.block().text();
+        if (!ln.trimmed().startsWith("- ") && !ln.trimmed().startsWith("* "))
+            c.insertText("- ");
+        setTextCursor(c);
     }
     emit unorderedListModeChanged(m_unorderedActive);
 }
@@ -228,51 +264,45 @@ void MarkdownEditor::toggleOrderedList()
     if (m_orderedActive) {
         m_unorderedActive = false;
         emit unorderedListModeChanged(false);
-        QTextCursor cursor = textCursor();
-        cursor.movePosition(QTextCursor::StartOfLine);
-        QString line = cursor.block().text();
-        QRegularExpression re("^\\s*(\\d+)\\.\\s");
-        if (!re.match(line).hasMatch()) {
-            cursor.insertText("1. ");
-            setTextCursor(cursor);
-        }
+        QTextCursor c = textCursor();
+        c.movePosition(QTextCursor::StartOfLine);
+        QString ln = c.block().text();
+        if (!QRegularExpression("^\\s*(\\d+)\\.\\s").match(ln).hasMatch())
+            c.insertText("1. ");
+        setTextCursor(c);
     }
     emit orderedListModeChanged(m_orderedActive);
 }
 
 void MarkdownEditor::insertLink()
 {
-    QTextCursor cursor = textCursor();
-    if (cursor.selectedText().isEmpty())
-        cursor.insertText("[链接文字](url)");
-    else
-        cursor.insertText(QString("[%1](url)").arg(cursor.selectedText()));
+    QTextCursor c = textCursor();
+    if (c.selectedText().isEmpty()) c.insertText("[链接文字](url)");
+    else c.insertText(QString("[%1](url)").arg(c.selectedText()));
 }
 
 void MarkdownEditor::insertImage()
 {
-    QTextCursor cursor = textCursor();
-    if (cursor.selectedText().isEmpty())
-        cursor.insertText("![替代文字](图片链接)");
-    else
-        cursor.insertText(QString("![%1](图片链接)").arg(cursor.selectedText()));
+    QTextCursor c = textCursor();
+    if (c.selectedText().isEmpty()) c.insertText("![替代文字](图片链接)");
+    else c.insertText(QString("![%1](图片链接)").arg(c.selectedText()));
 }
 
 void MarkdownEditor::detailsBlock()
 {
-    QTextCursor cursor = textCursor();
-    QString templateText = "<details>\n<summary>标题</summary>\n\n内容\n\n</details>";
-    cursor.insertText(templateText);
-    cursor.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, templateText.length());
-    cursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, 9);
-    cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 2);
-    setTextCursor(cursor);
+    QTextCursor c = textCursor();
+    QString tpl = "<details>\n<summary>标题</summary>\n\n内容\n\n</details>";
+    c.insertText(tpl);
+    c.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, tpl.length());
+    c.movePosition(QTextCursor::Right,QTextCursor::MoveAnchor, 9);
+    c.movePosition(QTextCursor::Right,QTextCursor::KeepAnchor, 2);
+    setTextCursor(c);
 }
 
 void MarkdownEditor::insertTable()
 {
-    QTextCursor cursor = textCursor();
-    cursor.insertText(
+    QTextCursor c = textCursor();
+    c.insertText(
         "| 标题1 | 标题2 | 标题3 |\n"
         "|-------|-------|-------|\n"
         "| 内容1 | 内容2 | 内容3 |\n"

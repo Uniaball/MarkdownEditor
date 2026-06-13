@@ -1,6 +1,6 @@
 #pragma once
 #include <QPlainTextEdit>
-#include <QSet>
+#include <QPointF>
 
 class MarkdownHighlighter;
 
@@ -43,9 +43,12 @@ private:
     void prependToLine(const QString &prefix);
     void applyListNewline();
 
-    MarkdownHighlighter *m_highlighter;
+    MarkdownHighlighter *m_highlighter = nullptr;
     bool m_unorderedActive = false;
     bool m_orderedActive = false;
-    bool m_touchDragging = false;
+
+    bool  m_touchActive   = false;
+    bool  m_touchDidDrag = false;
+    QPointF m_touchStartPos;
     QPointF m_touchLastPos;
 };
