@@ -53,7 +53,7 @@ void MainWindow::setupUi()
     sp.setScrollMetric(QScrollerProperties::MinimumVelocity, 0.01);
     sp.setScrollMetric(QScrollerProperties::MaximumVelocity, 0.4);
     sp.setScrollMetric(QScrollerProperties::DragStartDistance, 0.025);
-    sp.setScrollMetric(QScrollerProperties::DragAccelerationFactor, 0.3);
+    // DragAccelerationFactor 枚举在 Qt 6.11.1 中不存在，已删除
     sp.setScrollMetric(QScrollerProperties::OvershootDragDistanceFactor, 0.25);
     sp.setScrollMetric(QScrollerProperties::OvershootScrollDistanceFactor, 0.15);
     sp.setScrollMetric(QScrollerProperties::OvershootDragResistanceFactor, 0.7);
