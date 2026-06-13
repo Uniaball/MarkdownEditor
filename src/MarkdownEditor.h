@@ -35,7 +35,6 @@ signals:
 protected:
     void keyPressEvent(QKeyEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
-    bool viewportEvent(QEvent *event) override;
 
 private:
     void wrapSelection(const QString &prefix, const QString &suffix, const QString &placeholder = "");

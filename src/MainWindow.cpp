@@ -45,7 +45,7 @@ void MainWindow::setupUi()
 
     QWidget *editorViewport = m_editor->viewport();
     if (!QScroller::hasScroller(editorViewport)) {
-        QScroller::grabGesture(editorViewport, QScroller::TouchGesture);
+        QScroller::grabGesture(editorViewport, QScroller::LeftMouseButtonGesture);
     }
     QScroller *editorScroller = QScroller::scroller(editorViewport);
     QScrollerProperties editorProps = editorScroller->scrollerProperties();
@@ -57,7 +57,7 @@ void MainWindow::setupUi()
 
     QWidget *previewViewport = m_preview->viewport();
     if (!QScroller::hasScroller(previewViewport)) {
-        QScroller::grabGesture(previewViewport, QScroller::TouchGesture);
+        QScroller::grabGesture(previewViewport, QScroller::LeftMouseButtonGesture);
     }
     QScroller *previewScroller = QScroller::scroller(previewViewport);
     QScrollerProperties previewProps = previewScroller->scrollerProperties();

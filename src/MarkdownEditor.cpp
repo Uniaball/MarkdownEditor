@@ -13,6 +13,9 @@ MarkdownEditor::MarkdownEditor(QWidget *parent)
     m_highlighter = new MarkdownHighlighter(document());
     connect(this, &QPlainTextEdit::textChanged, this, &MarkdownEditor::contentChanged);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+
+    setFocusPolicy(Qt::ClickFocus);
+    setAttribute(Qt::WA_InputMethodEnabled, true);
 }
 
 void MarkdownEditor::keyPressEvent(QKeyEvent *event)
@@ -98,17 +101,6 @@ void MarkdownEditor::wheelEvent(QWheelEvent *event)
         }
     }
     QPlainTextEdit::wheelEvent(event);
-}
-
-bool MarkdownEditor::viewportEvent(QEvent *event)
-{
-    if (event->type() == QEvent::TouchBegin ||
-        event->type() == QEvent::TouchUpdate ||
-        event->type() == QEvent::TouchEnd)
-    {
-        return true;
-    }
-    return QPlainTextEdit::viewportEvent(event);
 }
 
 void MarkdownEditor::wrapSelection(const QString &prefix, const QString &suffix, const QString &placeholder)
