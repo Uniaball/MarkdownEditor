@@ -41,17 +41,24 @@ void MainWindow::setupUi()
     m_preview = new PreviewWidget;
 
     m_editor->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    m_preview->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    m_preview->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 
-    QWidget *previewViewport = m_preview->viewport();
-    if (!QScroller::hasScroller(previewViewport)) {
-        QScroller::grabGesture(previewViewport, QScroller::LeftMouseButtonGesture);
-    }
-    QScroller *ps = QScroller::scroller(previewViewport);
-    QScrollerProperties pp = ps->scrollerProperties();
-    pp.setScrollMetric(QScrollerProperties::DragVelocitySmoothingFactor, 0.5);
-    pp.setScrollMetric(QScrollerProperties::DecelerationFactor, 1.5);
-    ps->setScrollerProperties(pp);
+    QWidget *pv = m_preview->viewport();
+    pv->setAttribute(Qt::WA_AcceptTouchEvents, true);
+    QScroller::grabGesture(pv, QScroller::TouchGesture);
+    QScroller *sc = QScroller::scroller(pv);
+    QScrollerProperties sp = sc->scrollerProperties();
+    sp.setScrollMetric(QScrollerProperties::DragVelocitySmoothingFactor, 0.85);
+    sp.setScrollMetric(QScrollerProperties::DecelerationFactor, 0.15);
+    sp.setScrollMetric(QScrollerProperties::MinimumVelocity, 0.01);
+    sp.setScrollMetric(QScrollerProperties::MaximumVelocity, 0.4);
+    sp.setScrollMetric(QScrollerProperties::DragStartDistance, 0.025);
+    sp.setScrollMetric(QScrollerProperties::DragAccelerationFactor, 0.3);
+    sp.setScrollMetric(QScrollerProperties::OvershootDragDistanceFactor, 0.25);
+    sp.setScrollMetric(QScrollerProperties::OvershootScrollDistanceFactor, 0.15);
+    sp.setScrollMetric(QScrollerProperties::OvershootDragResistanceFactor, 0.7);
+    sp.setScrollMetric(QScrollerProperties::VerticalOvershootPolicy, QVariant::fromValue<int>(1));
+    sc->setScrollerProperties(sp);
 
     m_splitter->addWidget(m_editor);
     m_splitter->addWidget(m_preview);

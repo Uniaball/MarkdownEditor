@@ -1,6 +1,5 @@
 #pragma once
 #include <QPlainTextEdit>
-#include <QPointF>
 
 class MarkdownHighlighter;
 
@@ -12,6 +11,13 @@ public:
 
     bool isUnorderedListActive() const { return m_unorderedActive; }
     bool isOrderedListActive() const { return m_orderedActive; }
+
+signals:
+    void contentChanged();
+    void unorderedListModeChanged(bool active);
+    void orderedListModeChanged(bool active);
+    void fontSizeChanged(int size);
+    void scrollPixelChanged(int pixelValue);
 
 public slots:
     void boldText();
@@ -26,20 +32,15 @@ public slots:
     void detailsBlock();
     void insertTable();
 
-signals:
-    void contentChanged();
-    void unorderedListModeChanged(bool active);
-    void orderedListModeChanged(bool active);
-    void fontSizeChanged(int size);
-    void scrollPixelChanged(int pixelValue);
-
 protected:
     void keyPressEvent(QKeyEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
-    bool eventFilter(QObject *watched, QEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
 
 private:
-    void wrapSelection(const QString &prefix, const QString &suffix, const QString &placeholder = "");
+    void wrapSelection(const QString &prefix, const QString &suffix, const QString &placeholder = {});
     void prependToLine(const QString &prefix);
     void applyListNewline();
 
@@ -47,8 +48,7 @@ private:
     bool m_unorderedActive = false;
     bool m_orderedActive = false;
 
-    bool  m_touchActive   = false;
-    bool  m_touchDidDrag = false;
-    QPointF m_touchStartPos;
-    QPointF m_touchLastPos;
+    bool m_dragging = false;
+    bool m_hasDragConsent = false;
+    QPoint m_dragStartPos;
 };
