@@ -43,29 +43,15 @@ void MainWindow::setupUi()
     m_editor->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     m_preview->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
 
-    QWidget *editorViewport = m_editor->viewport();
-    if (!QScroller::hasScroller(editorViewport)) {
-        QScroller::grabGesture(editorViewport, QScroller::LeftMouseButtonGesture);
-    }
-    QScroller *editorScroller = QScroller::scroller(editorViewport);
-    QScrollerProperties editorProps = editorScroller->scrollerProperties();
-    editorProps.setScrollMetric(QScrollerProperties::DragVelocitySmoothingFactor, 0.7);
-    editorProps.setScrollMetric(QScrollerProperties::MaximumVelocity, 0.08);
-    editorProps.setScrollMetric(QScrollerProperties::OvershootDragResistanceFactor, 0.5);
-    editorProps.setScrollMetric(QScrollerProperties::AcceleratingFlickMaximumTime, 0.1);
-    editorScroller->setScrollerProperties(editorProps);
-
     QWidget *previewViewport = m_preview->viewport();
     if (!QScroller::hasScroller(previewViewport)) {
         QScroller::grabGesture(previewViewport, QScroller::LeftMouseButtonGesture);
     }
-    QScroller *previewScroller = QScroller::scroller(previewViewport);
-    QScrollerProperties previewProps = previewScroller->scrollerProperties();
-    previewProps.setScrollMetric(QScrollerProperties::DragVelocitySmoothingFactor, 0.2);
-    previewProps.setScrollMetric(QScrollerProperties::MaximumVelocity, 0.1);
-    previewProps.setScrollMetric(QScrollerProperties::OvershootDragResistanceFactor, 0.6);
-    previewProps.setScrollMetric(QScrollerProperties::AcceleratingFlickMaximumTime, 0.1);
-    previewScroller->setScrollerProperties(previewProps);
+    QScroller *ps = QScroller::scroller(previewViewport);
+    QScrollerProperties pp = ps->scrollerProperties();
+    pp.setScrollMetric(QScrollerProperties::DragVelocitySmoothingFactor, 0.5);
+    pp.setScrollMetric(QScrollerProperties::DecelerationFactor, 1.5);
+    ps->setScrollerProperties(pp);
 
     m_splitter->addWidget(m_editor);
     m_splitter->addWidget(m_preview);
@@ -100,23 +86,19 @@ void MainWindow::setupConnections()
 
 void MainWindow::setupScrollSync()
 {
-    connect(m_editor->verticalScrollBar(), &QScrollBar::valueChanged,
-            this, &MainWindow::syncScrollFromEditor);
-    connect(m_preview->verticalScrollBar(), &QScrollBar::valueChanged,
-            this, &MainWindow::syncScrollFromPreview);
+    connect(m_editor, &MarkdownEditor::scrollPixelChanged, this, &MainWindow::syncScrollFromEditorPx);
+    connect(m_preview->verticalScrollBar(), &QScrollBar::valueChanged, this, &MainWindow::syncScrollFromPreview);
 }
 
 void MainWindow::updatePreview()
 {
     int savedPos = m_preview->verticalScrollBar()->value();
-
     auto result = MarkdownParser::toHtml(m_editor->toPlainText(), m_preview->expandedIds());
     if (result) {
         m_preview->verticalScrollBar()->blockSignals(true);
         m_preview->setContent(*result);
         m_preview->verticalScrollBar()->setValue(savedPos);
         m_preview->verticalScrollBar()->blockSignals(false);
-
         m_modified = true;
         std::string title = std::format("Markdown 编辑器 - {}[*]",
             m_currentFilePath.isEmpty() ? "未命名" : m_currentFilePath.toStdString());
@@ -132,52 +114,42 @@ void MainWindow::syncFontSize(int size)
     m_currentFontSize = size;
 }
 
-void MainWindow::syncScrollFromEditor(int value)
+void MainWindow::syncScrollFromEditorPx(int px)
 {
-    QScrollBar *editorBar = m_editor->verticalScrollBar();
-    QScrollBar *previewBar = m_preview->verticalScrollBar();
-
-    double editorRange = editorBar->maximum() - editorBar->minimum();
-    double previewRange = previewBar->maximum() - previewBar->minimum();
-    if (editorRange <= 0 || previewRange <= 0) return;
-
-    double ratio = (value - editorBar->minimum()) / editorRange;
-    int previewValue = previewBar->minimum() + qRound(ratio * previewRange);
-
-    previewBar->blockSignals(true);
-    previewBar->setValue(previewValue);
-    previewBar->blockSignals(false);
-    m_preview->viewport()->update();
+    QScrollBar *src = m_editor->verticalScrollBar();
+    QScrollBar *dst = m_preview->verticalScrollBar();
+    int srcMax = src->maximum() - src->minimum();
+    int dstMax = dst->maximum() - dst->minimum();
+    if (srcMax <= 0 || dstMax <= 0) return;
+    double ratio = double(px - src->minimum()) / srcMax;
+    int v = dst->minimum() + qRound(ratio * dstMax);
+    dst->blockSignals(true);
+    dst->setValue(v);
+    dst->blockSignals(false);
 }
 
 void MainWindow::syncScrollFromPreview(int value)
 {
-    QScrollBar *editorBar = m_editor->verticalScrollBar();
-    QScrollBar *previewBar = m_preview->verticalScrollBar();
-
-    double previewRange = previewBar->maximum() - previewBar->minimum();
-    double editorRange = editorBar->maximum() - editorBar->minimum();
-    if (previewRange <= 0 || editorRange <= 0) return;
-
-    double ratio = (value - previewBar->minimum()) / previewRange;
-    int editorValue = editorBar->minimum() + qRound(ratio * editorRange);
-
-    editorBar->blockSignals(true);
-    editorBar->setValue(editorValue);
-    editorBar->blockSignals(false);
-    m_editor->viewport()->update();
+    QScrollBar *src = m_preview->verticalScrollBar();
+    QScrollBar *dst = m_editor->verticalScrollBar();
+    int srcMax = src->maximum() - src->minimum();
+    int dstMax = dst->maximum() - dst->minimum();
+    if (srcMax <= 0 || dstMax <= 0) return;
+    double ratio = double(value - src->minimum()) / srcMax;
+    int v = dst->minimum() + qRound(ratio * dstMax);
+    dst->blockSignals(true);
+    dst->setValue(v);
+    dst->blockSignals(false);
 }
 
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
     QMainWindow::resizeEvent(event);
     if (!m_splitter) return;
-
     QSize newSize = event->size();
     Qt::Orientation newOrient = (newSize.width() > newSize.height()) ? Qt::Horizontal : Qt::Vertical;
-    if (m_splitter->orientation() != newOrient) {
+    if (m_splitter->orientation() != newOrient)
         m_splitter->setOrientation(newOrient);
-    }
 }
 
 void MainWindow::newFile()

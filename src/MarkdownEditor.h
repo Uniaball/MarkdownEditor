@@ -31,10 +31,12 @@ signals:
     void unorderedListModeChanged(bool active);
     void orderedListModeChanged(bool active);
     void fontSizeChanged(int size);
+    void scrollPixelChanged(int pixelValue);
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
     void wrapSelection(const QString &prefix, const QString &suffix, const QString &placeholder = "");
@@ -44,4 +46,6 @@ private:
     MarkdownHighlighter *m_highlighter;
     bool m_unorderedActive = false;
     bool m_orderedActive = false;
+    bool m_touchDragging = false;
+    QPointF m_touchLastPos;
 };

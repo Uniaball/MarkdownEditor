@@ -25,7 +25,7 @@ private slots:
     bool saveAsFile();
     void updatePreview();
     void syncFontSize(int size);
-    void syncScrollFromEditor(int value);
+    void syncScrollFromEditorPx(int px);
     void syncScrollFromPreview(int value);
 
 private:
@@ -33,7 +33,6 @@ private:
     void setupMenuBar();
     void setupConnections();
     void setupScrollSync();
-
     void loadFile(const QString &path);
     bool saveFileAs(const QString &path);
 

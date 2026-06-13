@@ -6,6 +6,7 @@
 #include <QWheelEvent>
 #include <QApplication>
 #include <QTouchEvent>
+#include <QScrollBar>
 
 MarkdownEditor::MarkdownEditor(QWidget *parent)
     : QPlainTextEdit(parent)
@@ -13,9 +14,55 @@ MarkdownEditor::MarkdownEditor(QWidget *parent)
     m_highlighter = new MarkdownHighlighter(document());
     connect(this, &QPlainTextEdit::textChanged, this, &MarkdownEditor::contentChanged);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-
     setFocusPolicy(Qt::ClickFocus);
     setAttribute(Qt::WA_InputMethodEnabled, true);
+    viewport()->installEventFilter(this);
+    viewport()->setAttribute(Qt::WA_AcceptTouchEvents, true);
+}
+
+bool MarkdownEditor::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched != viewport())
+        return QPlainTextEdit::eventFilter(watched, event);
+
+    switch (event->type()) {
+    case QEvent::TouchBegin: {
+        auto *te = static_cast<QTouchEvent *>(event);
+        if (te->points().size() == 1) {
+            m_touchDragging = true;
+            m_touchLastPos = te->points().first().position();
+            QPoint pos = m_touchLastPos.toPoint();
+            QTextCursor cur = cursorForPosition(pos);
+            setTextCursor(cur);
+            return true;
+        }
+        break;
+    }
+    case QEvent::TouchUpdate: {
+        auto *te = static_cast<QTouchEvent *>(event);
+        if (!m_touchDragging || te->points().size() != 1)
+            break;
+        QPointF now = te->points().first().position();
+        qreal dy = m_touchLastPos.y() - now.y();
+        m_touchLastPos = now;
+        QScrollBar *v = verticalScrollBar();
+        if (v && v->maximum() > v->minimum()) {
+            int newVal = v->value() + int(qRound(dy));
+            newVal = qBound(v->minimum(), newVal, v->maximum());
+            v->setValue(newVal);
+            emit scrollPixelChanged(newVal);
+        }
+        return true;
+    }
+    case QEvent::TouchEnd:
+    case QEvent::TouchCancel: {
+        m_touchDragging = false;
+        return true;
+    }
+    default:
+        break;
+    }
+    return QPlainTextEdit::eventFilter(watched, event);
 }
 
 void MarkdownEditor::keyPressEvent(QKeyEvent *event)
@@ -88,9 +135,7 @@ void MarkdownEditor::wheelEvent(QWheelEvent *event)
         if (delta != 0) {
             QFont currentFont = font();
             int currentSize = currentFont.pointSize();
-            if (currentSize == -1) {
-                currentSize = QApplication::font().pointSize();
-            }
+            if (currentSize == -1) currentSize = QApplication::font().pointSize();
             int newSize = currentSize + (delta > 0 ? 1 : -1);
             newSize = qBound(6, newSize, 48);
             currentFont.setPointSize(newSize);
@@ -227,9 +272,9 @@ void MarkdownEditor::detailsBlock()
 void MarkdownEditor::insertTable()
 {
     QTextCursor cursor = textCursor();
-    QString templateText =
+    cursor.insertText(
         "| 标题1 | 标题2 | 标题3 |\n"
         "|-------|-------|-------|\n"
-        "| 内容1 | 内容2 | 内容3 |\n";
-    cursor.insertText(templateText);
+        "| 内容1 | 内容2 | 内容3 |\n"
+    );
 }
